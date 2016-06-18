@@ -1,5 +1,5 @@
-const conf = require('nconf').env();
 const cookieApi = require('cookie');
+const conf = require('nconf').env();
 const requestApi = require('request');
 
 const authServerUrl = conf.get('AUTH_SERVER_URL');
