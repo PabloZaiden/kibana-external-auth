@@ -1,18 +1,13 @@
-import exampleRoute from './server/routes/example';
+const conf = require('nconf').env();
+const cookieApi = require('cookie');
+const requestApi = require('request');
+
+const authServerUrl = conf.get('AUTH_SERVER_URL');
 
 export default function (kibana) {
   return new kibana.Plugin({
     require: ['elasticsearch'],
-
     uiExports: {
-      app: {
-        title: 'Auth Plugin',
-        description: 'External auth for kibana',
-        main: 'plugins/auth_plugin/app'
-      },
-      hacks: [
-        'plugins/auth_plugin/hack'
-      ]
     },
 
     config(Joi) {
@@ -22,9 +17,39 @@ export default function (kibana) {
     },
 
     init(server, options) {
-      // Add server routes and initalize the plugin here
-      exampleRoute(server);
-    }
+      if (authServerUrl == undefined) {
+        console.log("Couldn't get AUTH_SERVER_URL info");
+        return;
+      }
 
+      //Define the cookie
+      server.state('authToken', {
+        encoding: 'none',
+      });
+
+      server.ext('onPreResponse', function (request, reply) {
+        if (request.query.setAuthToken) {
+          var authToken = request.query.setAuthToken;
+          reply
+            .redirect('/')
+            .state('authToken', authToken);
+          return;
+        }
+
+        let cookies = cookieApi.parse(request.headers.cookie);
+        if (cookies.authToken != undefined) {
+          requestApi(authServerUrl + '?token=' + cookies.authToken, function (err, response, body) {
+            if (response.statusCode >= 200 && response.statusCode < 300) {
+              reply.continue();
+            } else {
+              reply('Unauthorized').code(401)
+            }
+          });
+        } else {
+          reply('Unauthorized').code(401);
+        }
+      });
+    }
   });
-};
+}
+
