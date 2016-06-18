@@ -52,6 +52,10 @@ export default function (kibana) {
 }
 
 function parseCookie(str, options) {
+  if (str == undefined) {
+      str = '';
+  }
+  
   var pairSplitRegExp = /; */;
   var fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
 
